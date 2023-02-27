@@ -4,88 +4,47 @@ import com.example.enums.Coin;
 import com.example.enums.Product;
 import com.example.exception.InsufficientFundsException;
 import com.example.exception.ProductNotFoundException;
+import lombok.Data;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
+@Data
 public class VendingMachine {
 
-    private int num_coin_1_point_5 = 0;
-    private int num_coin_1 = 0;
-    private int num_coin_2 = 0;
-    private int num_coin_5 = 0;
-    private int num_coin_10 = 0;
+    private CoinInventory coinInventory;
+    private ProductStock productStock;
 
-    private int num_mirendina = 0;
-    private int num_tango = 0;
-    private int num_snickers = 0;
-    private int num_kitkat = 0;
-    private int num_milka = 0;
-
-    public VendingMachine(int num_coin_1_point_5, int num_coin_1, int num_coin_2, int num_coin_5, int num_coin_10, int num_mirendina, int num_tango, int num_kitkat, int num_snickers, int num_milka) {
-        this.num_coin_1_point_5 = num_coin_1_point_5;
-        this.num_coin_1 = num_coin_1;
-        this.num_coin_2 = num_coin_2;
-        this.num_coin_5 = num_coin_5;
-        this.num_coin_10 = num_coin_10;
-        this.num_mirendina = num_mirendina;
-        this.num_milka = num_milka;
-        this.num_tango= num_tango;
-        this.num_snickers = num_snickers;
-        this.num_kitkat = num_kitkat;
+    public VendingMachine(CoinInventory coinInventory, ProductStock productStock) {
+        this.coinInventory = coinInventory;
+        this.productStock = productStock;
     }
 
-    public void depositCoins(Coin[] givenCoins) {
-        for (Coin coin : givenCoins) {
-            switch (coin) {
-                case COIN_1_POINT_5:
-                    num_coin_1_point_5++;
-                    break;
-                case COIN_1:
-                    num_coin_1++;
-                    break;
-                case COIN_2:
-                    num_coin_2++;
-                    break;
-                case COIN_5:
-                    num_coin_5++;
-                    break;
-                case COIN_10:
-                    num_coin_10++;
-                    break;
-            }
+    public void depositCoins(Map<Coin, Integer> givenCoins) {
+        System.out.println("depositCoins");
+        this.coinInventory.deposit(givenCoins);
+    }
+
+    public void withdrawCoins(Map<Coin, Integer> givenCoins) {
+        this.coinInventory.withdraw(givenCoins);
+    }
+
+    public double calculateValue(Map<Coin, Integer> givenCoins) {
+        double total = 0;
+        for (Coin coin : givenCoins.keySet()) {
+            total += coin.getValue() * givenCoins.get(coin);
         }
+        return total;
     }
 
-    public void withdrawCoins(Coin[] coins) {
-        for (Coin coin : coins) {
-            switch (coin) {
-                case COIN_1_POINT_5:
-                    num_coin_1_point_5--;
-                    break;
-                case COIN_1:
-                    num_coin_1--;
-                    break;
-                case COIN_2:
-                    num_coin_2--;
-                    break;
-                case COIN_5:
-                    num_coin_5--;
-                    break;
-                case COIN_10:
-                    num_coin_10--;
-                    break;
-            }
-        }
-    }
-    public Coin[] refundCoins(Coin[] givenCoins){
+    public Map<Coin, Integer> refundCoins(Map<Coin, Integer> givenCoins) {
         return givenCoins;
     }
 
-    public Coin[] purchase(Coin[] givenCoins, int productId) throws ProductNotFoundException, InsufficientFundsException {
+    public Map<Coin, Integer> purchase(Map<Coin, Integer> givenCoins, int productId)
+            throws ProductNotFoundException, InsufficientFundsException {
 
-
-        double paidAmount = 0;
+        double paidAmount = calculateValue(givenCoins);
 
         Product product = Product.findByNumber(productId);
 
@@ -93,99 +52,56 @@ public class VendingMachine {
             throw new ProductNotFoundException("Product not found");
         }
 
-        for (Coin coin : givenCoins){
-            paidAmount += coin.getValue();
+        if (!productStock.isProductInStock(product)) {
+            throw new InsufficientFundsException("Product out of stock");
         }
 
-        dispenseProduct(product, paidAmount);
+        if (product.getPrice() > paidAmount) {
+            throw new InsufficientFundsException("Paid amount insufficient");
+        }
+
+        productStock.dispense(product);
 
         depositCoins(givenCoins);
 
         double changeValue = paidAmount - product.getPrice();
 
         // counting the change
-        List<Coin> changeCoins = new ArrayList<>();
+        Map<Coin, Integer> changeCoins = new HashMap<>();
 
-        while (changeValue > 0) {
-            if (changeValue >= 10) {
-                changeCoins.add(Coin.COIN_10);
-                changeValue -= 10;
-            } else if (changeValue >= 5) {
-                changeCoins.add(Coin.COIN_5);
-                changeValue -= 5;
-            } else if (changeValue >= 2) {
-                changeCoins.add(Coin.COIN_2);
-                changeValue -= 2;
-            } else if (changeValue >= 1) {
-                changeCoins.add(Coin.COIN_1);
-                changeValue -= 1;
-            } else if (changeValue >= 1.5) {
-                changeCoins.add(Coin.COIN_1_POINT_5);
-                changeValue -= 1.5;
-            }
+        int coinCount = (int) (changeValue / 10);
+        if (coinCount > 0 && coinInventory.getCoins().get(Coin.COIN_10) > 0 ){
+            changeCoins.put(Coin.COIN_10, coinCount);
+            changeValue -= coinCount * 10;
         }
 
-        return changeCoins.toArray(new Coin[changeCoins.size()]);
-    }
-
-    public void dispenseProduct(Product product, double paidAmount) throws InsufficientFundsException {
-        switch (product) {
-            case MIRENDINA:
-                if (num_mirendina == 0) {
-                    throw new InsufficientFundsException("Product out of stock");
-                } else if (paidAmount < product.getPrice()) {
-                    throw new InsufficientFundsException("Insufficient funds product price is: " + product.getPrice());
-                }else {
-                    num_mirendina--;
-                    paidAmount -= product.getPrice();
-                }
-                break;
-            case TANGO:
-
-                if (num_tango == 0) {
-                    throw new InsufficientFundsException("Product out of stock");
-                } else if (paidAmount < product.getPrice()) {
-                    throw new InsufficientFundsException("Insufficient funds product price is: " + product.getPrice());
-                }else {
-                    num_tango--;
-                    paidAmount -= product.getPrice();
-                }
-                break;
-            case KITKAT:
-
-                if (num_kitkat == 0) {
-                    throw new InsufficientFundsException("Product out of stock");
-                } else if (paidAmount < product.getPrice()) {
-                    throw new InsufficientFundsException("Insufficient funds product price is: " + product.getPrice());
-                }else {
-                    num_kitkat--;
-                    paidAmount -= product.getPrice();
-                }
-                break;
-            case SNICKERS:
-
-                if (num_snickers == 0) {
-                    throw new InsufficientFundsException("Product out of stock");
-                } else if (paidAmount < product.getPrice()) {
-                    throw new InsufficientFundsException("Insufficient funds product price is: " + product.getPrice());
-                }else {
-                    num_snickers--;
-                    paidAmount -= product.getPrice();
-                }
-                break;
-            case MILKA:
-
-                if (num_milka == 0) {
-                    throw new InsufficientFundsException("Product out of stock");
-                } else if (paidAmount < product.getPrice()) {
-                    throw new InsufficientFundsException("Insufficient funds product price is: " + product.getPrice());
-                }else {
-                    num_milka--;
-                    paidAmount -= product.getPrice();
-                }
-                break;
+        coinCount = (int) (changeValue / 5);
+        if (coinCount > 0 && coinInventory.getCoins().get(Coin.COIN_5) > 0 ){
+            changeCoins.put(Coin.COIN_5, coinCount);
+            changeValue -= coinCount * 5;
         }
 
+        coinCount = (int) (changeValue / 2);
+        if (coinCount > 0 && coinInventory.getCoins().get(Coin.COIN_2) > 0 ){
+            changeCoins.put(Coin.COIN_2, coinCount);
+            changeValue -= coinCount * 2;
+        }
+
+        coinCount = (int) (changeValue / 1);
+        if (coinCount > 0 && coinInventory.getCoins().get(Coin.COIN_1) > 0 ){
+            changeCoins.put(Coin.COIN_1, coinCount);
+            changeValue -= coinCount * 1;
+        }
+
+        coinCount = (int) (changeValue / 0.1);
+        if (coinCount > 0 && coinInventory.getCoins().get(Coin.COIN_0_POINT_5) > 0 ){
+            changeCoins.put(Coin.COIN_0_POINT_5, coinCount);
+            changeValue -= coinCount * 0.1;
+        }
+
+        withdrawCoins(changeCoins);
+
+        return changeCoins;
     }
 
 }

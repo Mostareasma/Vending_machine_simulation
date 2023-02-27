@@ -1,7 +1,7 @@
 package com.example.enums;
 
 public enum Coin {
-    COIN_1_POINT_5(1.5),
+    COIN_0_POINT_5(0.5),
     COIN_1(1),
     COIN_2(2),
     COIN_5(5),
