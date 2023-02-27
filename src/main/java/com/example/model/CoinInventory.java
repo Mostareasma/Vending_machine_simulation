@@ -26,16 +26,9 @@ public class CoinInventory {
     }
 
     public boolean withdraw(Map<Coin, Integer> coins) {
-        for (var entry : coins.entrySet()) {
-            var coin = entry.getKey();
-            var quantity = entry.getValue();
-
-            if (!this.coins.containsKey(coin) || this.coins.get(coin) < quantity) {
-                return false;
-            }
-
+        coins.forEach((coin, quantity) -> {
             this.coins.merge(coin, -quantity, Integer::sum);
-        }
+        });
 
         return true;
     }

@@ -18,13 +18,15 @@ public class ProductStock {
     }
 
     public void add(Product product) {
-        Integer quantity = this.products.get(product);
-        this.products.put(product,quantity++);
+        Integer new_quantity = this.products.get(product)+1;
+        this.products.put(product,new_quantity);
     }
 
     public void dispense(Product product) {
-        Integer quantity = this.products.get(product);
-        this.products.put(product,quantity--);
+        System.out.println(this.products.get(product));
+        Integer new_quantity = this.products.get(product)-1;
+        this.products.put(product,new_quantity);
+        System.out.println(this.products.get(product));
     }
 
     public boolean isProductInStock(Product product){

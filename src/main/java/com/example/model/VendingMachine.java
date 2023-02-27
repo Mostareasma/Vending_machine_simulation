@@ -12,6 +12,8 @@ import java.util.Map;
 @Data
 public class VendingMachine {
 
+// isOrderCanceled
+
     private CoinInventory coinInventory;
     private ProductStock productStock;
 
@@ -21,7 +23,6 @@ public class VendingMachine {
     }
 
     public void depositCoins(Map<Coin, Integer> givenCoins) {
-        System.out.println("depositCoins");
         this.coinInventory.deposit(givenCoins);
     }
 
@@ -40,6 +41,8 @@ public class VendingMachine {
     public Map<Coin, Integer> refundCoins(Map<Coin, Integer> givenCoins) {
         return givenCoins;
     }
+
+    // function that check isOrderCAceled
 
     public Map<Coin, Integer> purchase(Map<Coin, Integer> givenCoins, int productId)
             throws ProductNotFoundException, InsufficientFundsException {
